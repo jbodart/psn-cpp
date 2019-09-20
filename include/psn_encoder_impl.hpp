@@ -28,7 +28,7 @@ THE SOFTWARE.
 #define PSN_ENCODER_IMPL_HPP
 
 #include <psn_encoder.hpp> 
-
+#include <cstdlib>
 //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 namespace psn
 {

@@ -27,11 +27,23 @@ THE SOFTWARE.
 #ifndef UDP_SOCKET_H
 #define UDP_SOCKET_H
 
-#include <WinSock2.h>
-#include <Ws2tcpip.h>
-#include <string>
+#ifdef _WIN32
+    #include <Winsock2.h> // before Windows.h, else Winsock 1 conflict
+    #include <Ws2tcpip.h> // needed for ip_mreq definition for multicast
+#else
+    #include <sys/types.h>
+    #include <sys/socket.h>
+    #include <netinet/in.h>
+    #include <arpa/inet.h>
+    #include <time.h>
+    #include <fcntl.h>
+    #include <errno.h>
+#endif
 
+#include <string>
+#include <cstring>
 //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+#ifdef _WIN32
 class wsa_session
 {
   public :
@@ -49,6 +61,9 @@ class wsa_session
 
     WSAData data_ ;
 } ;
+#else
+int guard(int n, char * err) { if (n == -1) { perror(err); exit(1); } return n; }
+#endif
 
 //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 class udp_socket
@@ -62,22 +77,33 @@ class udp_socket
 
 		// non blocking socket
 		u_long arg = 1 ;
+#ifdef _WIN32
 		ioctlsocket( socket_ , FIONBIO , &arg ) ;
+#else
+                int flags = guard(fcntl(socket_, F_GETFL), "could not get file flags");
+                guard(fcntl(socket_, F_SETFL, flags | O_NONBLOCK),"could not set file flags");
+#endif 
 	}
 
 	~udp_socket( void ) 
 	{
+#ifdef _WIN32
 		closesocket( socket_ ) ;
+#endif
 	}
 
 	bool send_message( const std::string & address , unsigned short port , const ::std::string & message )
     {
         sockaddr_in add ;
         add.sin_family = AF_INET ;
+#ifdef _WIN32
         InetPton( AF_INET , address.c_str() , &add.sin_addr.s_addr ) ;
+#else
+        add.sin_addr.s_addr=inet_addr(address.c_str());
+#endif
         add.sin_port = htons( port ) ;
         
-		if ( sendto( socket_ , message.c_str() , (int)message.length() , 0 , reinterpret_cast<SOCKADDR *>( &add ) , sizeof( add ) ) > 0 )
+		if ( sendto( socket_ , message.c_str() , (int)message.length() , 0 , reinterpret_cast<sockaddr *>( &add ) , sizeof( add ) ) > 0 )
 			return true ;
 
 		return false ;
@@ -107,7 +133,7 @@ class udp_socket
         add.sin_addr.s_addr = htonl( INADDR_ANY ) ;
         add.sin_port = htons( port ) ;
 
-		if ( ::bind( socket_ , reinterpret_cast<SOCKADDR *>( &add ) , sizeof( add ) ) != SOCKET_ERROR )
+		if ( ::bind( socket_ , reinterpret_cast<sockaddr *>( &add ) , sizeof( add ) ) ==0 )
 			return true ;
 
 		return false ;
@@ -123,14 +149,19 @@ class udp_socket
 						   IP_MULTICAST_IF , 
 						   (const char*)&add , 
 						   sizeof( add ) ) ;
-		return ( result != SOCKET_ERROR ) ; 
+		return ( result ==0 ) ; 
 	}
 
 	bool join_multicast_group( const ::std::string & ip_group ) 
 	{
 		struct ip_mreq imr; 
-        
+       
+ #ifdef _WIN32
         InetPton( AF_INET , ip_group.c_str() , &imr.imr_multiaddr.s_addr ) ;
+#else
+        imr.imr_multiaddr.s_addr=inet_addr(ip_group.c_str());
+ #endif
+
 		imr.imr_interface.s_addr = INADDR_ANY ;
 
 		int result = setsockopt( socket_ , 
@@ -138,14 +169,17 @@ class udp_socket
 						   IP_ADD_MEMBERSHIP , 
 						   (char*) &imr , 
 						   sizeof(struct ip_mreq) ) ;
-		return ( result != SOCKET_ERROR ) ; 
+		return ( result ==0 ) ; 
 	}
 
 	bool leave_multicast_group( const ::std::string & ip_group ) 
 	{
 		struct ip_mreq imr;
-        
+#ifdef _WIN32        
         InetPton( AF_INET , ip_group.c_str() , &imr.imr_multiaddr.s_addr ) ;
+#else
+        imr.imr_multiaddr.s_addr=inet_addr(ip_group.c_str());
+#endif
 		imr.imr_interface.s_addr = INADDR_ANY ;
 
 		int result = setsockopt( socket_ , 
@@ -153,12 +187,12 @@ class udp_socket
 						   IP_DROP_MEMBERSHIP ,
 						   (char*) &imr , 
 						   sizeof(struct ip_mreq) ) ;
-		return ( result != SOCKET_ERROR ) ; 
+		return ( result ==0 ) ; 
 	}
 
   private :
 
-	SOCKET		socket_ ; 
+	int		socket_ ; 
 } ;
 
 #endif

@@ -29,11 +29,29 @@ THE SOFTWARE.
 #include <utils/udp_socket.h>
 
 #include <iostream>
+#ifdef _WIN32
+    #include <windows.h>
 
-void main( void )
+    void mysleep(unsigned milliseconds)
+    {
+        Sleep(milliseconds);
+    }
+#else
+    #include <unistd.h>
+
+    void mysleep(unsigned milliseconds)
+    {
+        usleep(milliseconds * 1000); // takes microseconds
+    }
+#endif
+
+
+int main( void )
 {
-	wsa_session session ;
 
+#ifdef _WIN32
+	wsa_session session ;
+#endif
 //====================================================
 // Init client
 	udp_socket socket_client ;
@@ -46,7 +64,7 @@ void main( void )
 // Main loop
 	while ( 1 ) 
 	{
-		Sleep( 1 ) ;
+	mysleep( 1 ) ;
 
 		// Update Client
 		{
@@ -93,6 +111,7 @@ void main( void )
 			}
 		}
 	}
+  return 0;
 }
 
 
