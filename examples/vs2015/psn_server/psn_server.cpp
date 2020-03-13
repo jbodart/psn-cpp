@@ -38,7 +38,7 @@ void main( void )
 //====================================================
 // Init server
 	udp_socket socket_server ;
-	socket_server.enable_send_message_multicast() ;
+	socket_server.enable_send_message_multicast("") ;
 
 	::psn::psn_encoder psn_encoder( "Test PSN Server" ) ;
 

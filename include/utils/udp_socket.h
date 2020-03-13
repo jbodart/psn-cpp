@@ -113,10 +113,11 @@ class udp_socket
 		return false ;
     }
 
-	bool enable_send_message_multicast( void ) 
+	bool enable_send_message_multicast( std::string add_str ) 
 	{
 		struct in_addr add ;
-		add.s_addr = INADDR_ANY ;
+        if(add_str=="") add.s_addr = INADDR_ANY ;
+        else add.s_addr =inet_addr(add_str.c_str());
 
 		int result = setsockopt( socket_ , 
 						   IPPROTO_IP , 
