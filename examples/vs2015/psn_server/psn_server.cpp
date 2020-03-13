@@ -30,11 +30,27 @@ THE SOFTWARE.
 
 #include <iostream>
 #include <math.h>
+#ifdef _WIN32
+    #include <windows.h>
 
-void main( void )
+    void mysleep(unsigned milliseconds)
+    {
+        Sleep(milliseconds);
+    }
+#else
+    #include <unistd.h>
+
+    void mysleep(unsigned milliseconds)
+    {
+        usleep(milliseconds * 1000); // takes microseconds
+    }
+#endif
+
+int main( void )
 {
+#ifdef WIN32
 	wsa_session session ;
-
+#endif
 //====================================================
 // Init server
 	udp_socket socket_server ;
@@ -64,7 +80,7 @@ void main( void )
 // Main loop
 	while ( 1 ) 
 	{
-		Sleep( 1 ) ;
+                mysleep(1);
 
 		static uint64_t timestamp = 0 ;
 		timestamp++ ;		
@@ -80,6 +96,10 @@ void main( void )
 				{
 					trackers[ i ].pos_.x = (float)sin( day / orbits[ i ] ) * (float)dist_from_sun[ i ] ;
 					trackers[ i ].pos_.z = (float)cos( day / orbits[ i ] ) * (float)dist_from_sun[ i ] ;
+                                        trackers[ i ].ori_.x = 0.;
+                                        trackers[ i ].speed_.x = 0.;
+                                        //trackers[ i ].accel_.x = 0.;
+                                        //trackers[ i ].trgtpos_.x = 0.;
 				}
 			}
 
@@ -131,6 +151,7 @@ void main( void )
 			}
 		}
 	}
+  return 0;
 }
 
 

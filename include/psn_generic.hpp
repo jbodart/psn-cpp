@@ -28,7 +28,8 @@ THE SOFTWARE.
 #define PSN_GENERIC_HPP
 
 #include <psn_defs.hpp>
-
+#include <stdio.h>
+#include <cstring>
 namespace psn
 {
 
